@@ -11,7 +11,7 @@ def random_sharpen(image, boxes, alpha, ksize=(35, 35), gamma=0):
     参数:
     image: 输入图像
     boxes: 边界框（保持不变）
-    alpha: 权重参数
+    alpha: 锐化强度（>0 增强细节；输出 = (1+alpha)*原图 - alpha*模糊图）
     ksize: 模糊核大小
     gamma: 添加到加权和的标量
 
@@ -33,8 +33,10 @@ def random_sharpen(image, boxes, alpha, ksize=(35, 35), gamma=0):
         ksize_single = ksize[0] if ksize[0] % 2 == 1 else ksize[0] + 1
         blurred = cv2.GaussianBlur(image, (ksize_single, ksize_single), 0)
 
-    # 图像锐化
-    img_sharpened = cv2.addWeighted(blurred, alpha, image, 1 - alpha, gamma)
+    # USM 锐化：out = (1 + alpha) * 原图 - alpha * 模糊图
+    # （旧公式 addWeighted(blurred, alpha, image, 1-alpha) 在 alpha=2.5 时等价于
+    #   2.5*模糊 - 1.5*原图，高频细节被反向叠加，输出是"细节反转"的图而不是锐化）
+    img_sharpened = cv2.addWeighted(image, 1 + alpha, blurred, -alpha, gamma)
 
     print(f"使用 {blur_method} 模糊方法，核大小: {ksize}")
 
@@ -97,7 +99,7 @@ if __name__ == "__main__":
     output_directory = r"F:\data_source\3d_print_guotou\dataset_2\real_train_Re_labeled\train_ng_sys_0911\false_negatives\images2"  # 替换为你的输出目录
 
     # 处理参数
-    alpha_value = 2.5  # 锐化强度（>1 表示增强锐化）
+    alpha_value = 1.5  # 锐化强度（1.0~1.5 常用；过大会出现光晕/振铃）
     kernel_size = (65, 65)  # 模糊核大小
     gamma_value = 0  # gamma校正值
 

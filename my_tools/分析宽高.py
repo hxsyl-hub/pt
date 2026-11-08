@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import argparse
 import glob
+import sys
 
 plt.rcParams['font.family'] = 'SimHei'  # 替换为你选择的字体
 def analyze_yolo_boxes(labels_dir, output_dir=None, num_clusters=9):
@@ -28,20 +29,36 @@ def analyze_yolo_boxes(labels_dir, output_dir=None, num_clusters=9):
     heights = []
     ratios = []
 
+    skipped_malformed = 0  # 字段数不对或非数字的脏行
+    skipped_invalid = 0    # 尺寸非正或超出 [0,1] 的无效框
     for label_file in label_files:
         try:
             with open(label_file, 'r') as f:
                 for line in f:
                     data = line.strip().split()
-                    if len(data) >= 5:
-                        # 忽略类别ID，只取宽高
+                    if not data:
+                        continue
+                    if len(data) != 5:
+                        skipped_malformed += 1
+                        continue
+                    try:
+                        # 忽略类别ID，只取宽高；逐行解析，脏行只影响该行
                         _, _, _, w, h = map(float, data)
-                        widths.append(w)
-                        heights.append(h)
-                        ratios.append(w / h if h > 0 else 0)
-                        all_boxes.append([w, h])
-        except Exception as e:
+                    except ValueError:
+                        skipped_malformed += 1
+                        continue
+                    if w <= 0 or h <= 0 or w > 1.000001 or h > 1.000001:
+                        skipped_invalid += 1
+                        continue
+                    widths.append(w)
+                    heights.append(h)
+                    ratios.append(w / h)
+                    all_boxes.append([w, h])
+        except OSError as e:
             print(f"读取文件 {label_file} 时出错: {e}")
+
+    if skipped_malformed or skipped_invalid:
+        print(f"提示: 跳过脏行 {skipped_malformed} 行、无效框 {skipped_invalid} 个")
 
     if not all_boxes:
         print("警告: 没有找到有效的边界框")
@@ -59,8 +76,11 @@ def analyze_yolo_boxes(labels_dir, output_dir=None, num_clusters=9):
     print(f"宽高比范围: {ratios.min():.4f} - {ratios.max():.4f}")
     print(f"平均宽高比: {ratios.mean():.4f}")
 
-    # 使用K-means聚类分析anchor尺寸
-    kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+    # 使用K-means聚类分析anchor尺寸（簇数不能超过样本数）
+    n_clusters = min(num_clusters, len(all_boxes))
+    if n_clusters < num_clusters:
+        print(f"提示: 边界框数量不足，聚类簇数由 {num_clusters} 调整为 {n_clusters}")
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     kmeans.fit(all_boxes)
     anchors = kmeans.cluster_centers_
 
@@ -69,7 +89,7 @@ def analyze_yolo_boxes(labels_dir, output_dir=None, num_clusters=9):
     sorted_indices = np.argsort(areas)
     sorted_anchors = anchors[sorted_indices]
 
-    print(f"\n推荐的 {num_clusters} 个anchor尺寸 (宽, 高):")
+    print(f"\n推荐的 {n_clusters} 个anchor尺寸 (宽, 高):")
     for i, anchor in enumerate(sorted_anchors):
         print(f"Anchor {i + 1}: ({anchor[0]:.6f}, {anchor[1]:.6f}), 宽高比: {anchor[0] / anchor[1]:.2f}")
 
@@ -131,7 +151,7 @@ def analyze_yolo_boxes(labels_dir, output_dir=None, num_clusters=9):
             f.write(f"宽高比范围: {ratios.min():.6f} - {ratios.max():.6f}\n")
             f.write(f"平均宽高比: {ratios.mean():.6f}\n\n")
 
-            f.write(f"推荐的 {num_clusters} 个anchor尺寸:\n")
+            f.write(f"推荐的 {n_clusters} 个anchor尺寸:\n")
             for i, anchor in enumerate(sorted_anchors):
                 f.write(f"Anchor {i + 1}: {anchor[0]:.6f}, {anchor[1]:.6f}, 宽高比: {anchor[0] / anchor[1]:.2f}\n")
 
@@ -166,10 +186,8 @@ if __name__ == "__main__":
     labels_dir = r"F:\data_source\3d_print_guotou\dataset_2\val\labels"
     output_dir = r"F:\data_source\3d_print_guotou\dataset_2"
 
-    # 如果通过命令行运行，则使用参数解析
-    # 如果直接运行脚本，则使用上面的默认值
-    if True == 1:
-        # 使用默认值
-        analyze_yolo_boxes(labels_dir, output_dir, 9)
-    else:
+    # 带命令行参数时使用参数解析，否则使用上面的默认值
+    if len(sys.argv) > 1:
         main()
+    else:
+        analyze_yolo_boxes(labels_dir, output_dir, 9)

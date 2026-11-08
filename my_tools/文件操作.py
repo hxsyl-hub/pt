@@ -1,6 +1,15 @@
 import os
 import shutil
 import cv2
+import numpy as np
+
+
+def imread_unicode(path):
+    """读取图像，兼容中文/特殊字符路径（cv2.imread 在 Windows 下会失败返回 None）"""
+    try:
+        return cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
+    except OSError:
+        return None
 
 
 def process_labels(label_file, scale, dw, dh, img_width, img_height):
@@ -21,7 +30,7 @@ def process_labels(label_file, scale, dw, dh, img_width, img_height):
         lines = f.readlines()
         for row in lines:
             try:
-                label = row.split(' ')
+                label = row.split()
                 x_center = float(label[1]) * img_width
                 y_center = float(label[2]) * img_height
                 width = float(label[3]) * img_width
@@ -176,19 +185,10 @@ def move_images_by_class(image_dir, label_dir, target_image_dir, target_label_di
                 except ValueError:
                     continue
 
-        # 如果包含要移动的类别，移动标签文件和对应的图片文件
+        # 如果包含要移动的类别，先移动图片，成功后再移动标签，保持图文配对
         if should_move:
-            # 移动标签文件
-            try:
-                target_label_path = os.path.join(target_label_dir, filename)
-                shutil.move(label_path, target_label_path)
-                moved_labels += 1
-                print(f"已移动标签文件: {label_path} -> {target_label_path}")
-            except Exception as e:
-                print(f"移动标签文件失败 {label_path}: {e}")
-
-            # 查找并移动对应的图片文件
             base_name = os.path.splitext(filename)[0]
+            image_moved = False
             for ext in image_extensions:
                 image_path = os.path.join(image_dir, base_name + ext)
                 if os.path.exists(image_path):
@@ -196,10 +196,22 @@ def move_images_by_class(image_dir, label_dir, target_image_dir, target_label_di
                         target_image_path = os.path.join(target_image_dir, base_name + ext)
                         shutil.move(image_path, target_image_path)
                         moved_images += 1
+                        image_moved = True
                         print(f"已移动图片文件: {image_path} -> {target_image_path}")
                         break
                     except Exception as e:
                         print(f"移动图片文件失败 {image_path}: {e}")
+
+            if image_moved:
+                try:
+                    target_label_path = os.path.join(target_label_dir, filename)
+                    shutil.move(label_path, target_label_path)
+                    moved_labels += 1
+                    print(f"已移动标签文件: {label_path} -> {target_label_path}")
+                except Exception as e:
+                    print(f"移动标签文件失败 {label_path}: {e}")
+            else:
+                print(f"警告: 未找到对应图片，标签保留原地: {label_path}")
 
     # 打印统计信息
     print(f"\n处理完成!")
@@ -264,7 +276,7 @@ def move_images_by_box_size(label_dir, jpg_dir, output_dir, min_area=0, max_area
 
         try:
             # 读取图像
-            img0 = cv2.imread(image_file)
+            img0 = imread_unicode(image_file)
             if img0 is None:
                 continue
 
@@ -281,10 +293,9 @@ def move_images_by_box_size(label_dir, jpg_dir, output_dir, min_area=0, max_area
             for box in adjusted_boxes:
                 _, x_center, y_center, width, height = box
 
-                # 转换为像素尺寸
-                width_px = width * target_size
-                height_px = height * target_size
-                area = width_px * height_px
+                # process_labels 已换算到 letterbox 后的像素坐标，直接求面积
+                # （旧版在此处再乘 target_size，面积被放大 target_size² = 409600 倍，筛选完全失效）
+                area = width * height
 
                 # 检查是否在指定面积范围内
                 if min_area <= area <= max_area:

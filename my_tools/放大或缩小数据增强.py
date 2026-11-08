@@ -2,6 +2,7 @@ import os
 import cv2
 import numpy as np
 import argparse
+import sys
 from pathlib import Path
 
 
@@ -13,8 +14,10 @@ def yolo2voc(yolo_boxes, ih, iw):
     :param iw: 图像宽度
     :return: VOC格式的边界框 [class_id, xmin, ymin, xmax, ymax]
     """
-    if isinstance(yolo_boxes, list):
-        yolo_boxes = np.array(yolo_boxes)
+    yolo_boxes = np.asarray(yolo_boxes, dtype=float)
+    if yolo_boxes.size == 0:
+        # 空框列表直接返回空数组（旧版此处 IndexError）
+        return np.zeros((0, 5), dtype=int)
     voc_boxes = yolo_boxes.copy()
     voc_boxes[..., 1] = yolo_boxes[..., 1] * iw - yolo_boxes[..., 3] * iw / 2
     voc_boxes[..., 2] = yolo_boxes[..., 2] * ih - yolo_boxes[..., 4] * ih / 2
@@ -33,8 +36,10 @@ def voc2yolo(voc_boxes, ih, iw):
     :param iw: 图像宽度
     :return: YOLO格式的边界框 [class_id, cx, cy, w, h]
     """
-    if isinstance(voc_boxes, list):
-        voc_boxes = np.array(voc_boxes)
+    voc_boxes = np.asarray(voc_boxes, dtype=float)
+    if voc_boxes.size == 0:
+        # 空框列表直接返回空数组（旧版此处 IndexError）
+        return np.zeros((0, 5), dtype=float)
     yolo_boxes = voc_boxes.astype(float).copy()
     yolo_boxes[..., 1] = (voc_boxes[..., 1] + voc_boxes[..., 3]) / 2 / iw
     yolo_boxes[..., 2] = (voc_boxes[..., 2] + voc_boxes[..., 4]) / 2 / ih
@@ -118,6 +123,8 @@ def cut_box(img, boxes, expand_ratio=1.0):
 
         # 裁剪图像
         cropped_img = img[new_y_min:new_y_max, new_x_min:new_x_max, :]
+        if cropped_img.size == 0:
+            continue
 
         # 调整边界框坐标
         box_x_min = box[1] - new_x_min
@@ -292,10 +299,10 @@ if __name__ == "__main__":
     input_labels_dir = r"F:\data_source\3d_print_guotou\dataset_2\real_train_Re_labeledjust_0\moved_val_labels"
     output_dir = r"F:\data_source\3d_print_guotou\dataset_2\real_train_Re_labeledjust_0\output"
 
-    # 如果通过命令行运行，则使用参数解析
-    # 如果直接运行脚本，则使用上面的默认值
-    if True == 1:
-        # 使用默认值
+    # 带命令行参数时使用参数解析，否则使用上面的默认值
+    if len(sys.argv) > 1:
+        main()
+    else:
         process_images(
             input_images_dir,
             input_labels_dir,
@@ -303,5 +310,3 @@ if __name__ == "__main__":
             (2048, 2048),  # 目标大小
             1.0  # 边界扩大比例
         )
-    else:
-        main()

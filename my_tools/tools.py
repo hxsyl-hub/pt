@@ -8,6 +8,14 @@ import random
 plt.rcParams['font.family'] = 'SimHei'  # 替换为你选择的字体
 
 
+def imread_unicode(path):
+    """读取图像，兼容中文/特殊字符路径（cv2.imread 在 Windows 下会失败返回 None）"""
+    try:
+        return cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
+    except OSError:
+        return None
+
+
 def analyze_label_distribution(label_dir, output_dir=None, plot_title='Label Distribution', save_plot=False):
     """
     分析标签目录中所有标签的分布情况
@@ -128,7 +136,7 @@ def process_labels(label_file, scale, dw, dh, img_width, img_height):
         lines = f.readlines()
         for row in lines:
             try:
-                label = row.split(' ')
+                label = row.split()
                 x_center = float(label[1]) * img_width
                 y_center = float(label[2]) * img_height
                 width = float(label[3]) * img_width
@@ -172,13 +180,11 @@ def analyze_object_size_distribution(label_dir, jpg_dir, target_size=640):
         jpg_file = os.path.join(jpg_dir, p[:-4] + '.jpg')
 
         if os.path.exists(jpg_file):
-            try:
-                img0 = cv2.imread(jpg_file)
-                img_height, img_width = img0.shape[:2]
-            except Exception as e:
-                print(e)
-                print(jpg_file)
+            img0 = imread_unicode(jpg_file)
+            if img0 is None:
+                print(f"无法读取图像: {jpg_file}")
                 continue
+            img_height, img_width = img0.shape[:2]
 
             img_resized, scale, dw, dh = letterbox(img0, new_shape=target_size)
 
@@ -262,16 +268,16 @@ def analyze_image_histogram(jpg_dir, num_samples=500):
         img_path = os.path.join(jpg_dir, file_name)
 
         # 读取图像
-        img = cv2.imread(img_path)
+        img = imread_unicode(img_path)
         if img is None:
             print(f"无法读取图像: {img_path}")
             continue
 
 
-        # 计算每个通道的直方图
-        hist_b = cv2.calcHist([img], [0], None, [256], [10, 256])  # Blue
-        hist_g = cv2.calcHist([img], [1], None, [256], [10, 256])  # Green
-        hist_r = cv2.calcHist([img], [2], None, [256], [10, 256])  # Red
+        # 计算每个通道的直方图（范围必须是 [0, 256]，旧版 [10, 256] 会丢掉灰度 0-9 的像素）
+        hist_b = cv2.calcHist([img], [0], None, [256], [0, 256])  # Blue
+        hist_g = cv2.calcHist([img], [1], None, [256], [0, 256])  # Green
+        hist_r = cv2.calcHist([img], [2], None, [256], [0, 256])  # Red
 
         # 累加各通道的直方图数据
         hist_data['blue'] += hist_b.flatten()

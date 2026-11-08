@@ -13,8 +13,10 @@ def yolo2voc(yolo_boxes, ih, iw):
     :param iw: 图像宽度
     :return: VOC格式的边界框 [class_id, xmin, ymin, xmax, ymax]
     """
-    if isinstance(yolo_boxes, list):
-        yolo_boxes = np.array(yolo_boxes)
+    yolo_boxes = np.asarray(yolo_boxes, dtype=float)
+    if yolo_boxes.size == 0:
+        # 空框列表直接返回空数组（旧版此处 IndexError）
+        return np.zeros((0, 5), dtype=int)
     voc_boxes = yolo_boxes.copy()
     voc_boxes[..., 1] = yolo_boxes[..., 1] * iw - yolo_boxes[..., 3] * iw / 2
     voc_boxes[..., 2] = yolo_boxes[..., 2] * ih - yolo_boxes[..., 4] * ih / 2
@@ -33,8 +35,10 @@ def voc2yolo(voc_boxes, ih, iw):
     :param iw: 图像宽度
     :return: YOLO格式的边界框 [class_id, cx, cy, w, h]
     """
-    if isinstance(voc_boxes, list):
-        voc_boxes = np.array(voc_boxes)
+    voc_boxes = np.asarray(voc_boxes, dtype=float)
+    if voc_boxes.size == 0:
+        # 空框列表直接返回空数组（旧版此处 IndexError）
+        return np.zeros((0, 5), dtype=float)
     yolo_boxes = voc_boxes.astype(float).copy()
     yolo_boxes[..., 1] = (voc_boxes[..., 1] + voc_boxes[..., 3]) / 2 / iw
     yolo_boxes[..., 2] = (voc_boxes[..., 2] + voc_boxes[..., 4]) / 2 / ih
@@ -183,6 +187,12 @@ def copy_A_boxes_to_B(A_images_dir, A_labels_dir, B_images_dir, B_labels_dir, ou
         A_image_files.extend([f for f in os.listdir(A_images_dir) if f.lower().endswith(ext)])
 
     print(f"找到 {len(B_image_files)} 张B图像和 {len(A_image_files)} 张A图像")
+    if not A_image_files:
+        print(f"错误: A图像目录中没有图像: {A_images_dir}")
+        return
+    if not B_image_files:
+        print(f"错误: B图像目录中没有图像: {B_images_dir}")
+        return
 
     # 处理每张B图像
     for img_file in B_image_files:

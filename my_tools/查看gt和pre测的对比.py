@@ -1,6 +1,7 @@
 import os
 import cv2
 import argparse
+import sys
 import numpy as np
 import shutil
 from pathlib import Path
@@ -144,8 +145,10 @@ def visualize_labels(base_dir, output_dir=None, scale_factor=0.5, class_names=No
 
     print(f"找到 {len(image_files)} 张图像")
 
-    # 处理每张图像
-    for i, img_file in enumerate(image_files):
+    # 处理每张图像（while 循环：按 'm' 移除当前文件后索引不前进，避免跳过下一张）
+    i = 0
+    while i < len(image_files):
+        img_file = image_files[i]
         base_name = os.path.splitext(img_file)[0]
         img_path = os.path.join(images_dir, img_file)
         prelabel_path = os.path.join(prelabels_dir, base_name + ".txt")
@@ -203,13 +206,10 @@ def visualize_labels(base_dir, output_dir=None, scale_factor=0.5, class_names=No
         elif key == ord('m'):  # 按m移动文件
             success = move_files(base_dir, img_file, move_dir)
             if success:
-                # 从列表中移除已移动的文件
-                image_files.remove(img_file)
-                # 如果列表为空，退出循环
-                if not image_files:
-                    break
-                # 重置索引，因为列表已更改
-                i -= 1
+                # 移除已移动的文件；索引不前进，下一张自动顶上来
+                image_files.pop(i)
+                continue
+        i += 1
 
     cv2.destroyAllWindows()
 
@@ -254,15 +254,13 @@ if __name__ == "__main__":
     base_dir = r"F:\data_source\3d_print_guotou\dataset_2\real_train_Re_labeled\train_ng_sys_0911\false_negatives"
     output_dir = r"F:\data_source\3d_print_guotou\dataset_2\real_train_Re_labeled\train_ng_sys_0911\false_negatives_visualization"
 
-    # 如果通过命令行运行，则使用参数解析
-    # 如果直接运行脚本，则使用上面的默认值
-    if True == 1:
-        # 使用默认值
+    # 带命令行参数时使用参数解析，否则使用上面的默认值
+    if len(sys.argv) > 1:
+        main()
+    else:
         visualize_labels(
             base_dir,
             output_dir,
             0.5,  # 缩放因子
             None  # 类别名称
         )
-    else:
-        main()

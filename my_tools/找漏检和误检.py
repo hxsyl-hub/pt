@@ -113,9 +113,9 @@ def compare_labels(pred_dir, gt_dir, output_dir, image_dirs, iou_threshold=0.5, 
         os.makedirs(os.path.join(dir_path, "prelabels"), exist_ok=True)
         os.makedirs(os.path.join(dir_path, "gtlabels"), exist_ok=True)
 
-    # 获取所有标签文件
-    pred_files = set(os.listdir(pred_dir))
-    gt_files = set(os.listdir(gt_dir))
+    # 获取所有标签文件（只保留 .txt，避免 classes.txt 等杂项进入比对）
+    pred_files = {f for f in os.listdir(pred_dir) if f.endswith('.txt')}
+    gt_files = {f for f in os.listdir(gt_dir) if f.endswith('.txt')}
     all_files = pred_files.union(gt_files)
 
     for file_name in all_files:
@@ -224,7 +224,7 @@ def main():
     parser.add_argument("--output_dir", type=str, default=output_dir, help="输出目录")
     parser.add_argument("--iou_threshold", type=float, default=0.5, help="IOU阈值 (默认: 0.5)")
     parser.add_argument("--score_threshold", type=float, default=0.5,
-                        help="分数阈值，低于此值的预测会被单独保存 (默认: 0.0)")
+                        help="分数阈值，低于此值的预测会被单独保存且不计为误检 (默认: 0.5)")
 
     args = parser.parse_args()
 
