@@ -1,0 +1,34 @@
+# 3D 打印喷嘴缺陷检测训练超参数
+# 覆盖 yolov5-7.0/data/hyps/hyp.scratch-low.yaml 的对应字段，字段需完整，缺字段训练时 KeyError
+# 通过 train.py --hyp ../hyp_3dprint.yaml 引用
+
+lr0: 0.0001  # initial learning rate
+lrf: 0.01  # final OneCycleLR learning rate (lr0 * lrf)
+momentum: 0.937  # SGD momentum/Adam beta1
+weight_decay: 0.0005  # optimizer weight decay
+warmup_epochs: 0.0  # warmup epochs (fractions ok)
+warmup_momentum: 0.0  # warmup initial momentum
+warmup_bias_lr: 0.0  # warmup initial bias lr
+
+# loss gains: 0.05 box + 0.5 cls + 1.0 obj
+box: 0.05  # box loss gain, 位置损失不收敛时调大
+cls: 0.5  # cls loss gain, 类别误检时调大
+cls_pw: 1.0  # cls BCELoss positive_weight
+obj: 1.0  # obj loss gain, 漏检时调大
+obj_pw: 1.0  # obj BCELoss positive_weight
+iou_t: 0.20  # IoU training threshold (v7.0 源码中未生效)
+anchor_t: 4.0  # anchor-multiple threshold
+fl_gamma: 0.0  # focal loss gamma, 数据不平衡时可设 1.5
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 5  # image rotation (+/- deg)
+translate: 0.1
+scale: 0.5
+shear: 0.2  # image shear (+/- deg)
+perspective: 0.0  # 透视变换不启用
+flipud: 0.5
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.1
+copy_paste: 0.0  # 仅分割任务有效

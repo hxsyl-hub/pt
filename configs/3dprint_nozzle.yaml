@@ -1,0 +1,11 @@
+# YOLOv5 数据配置（由 v5_格式校验与转换.py 生成）
+# path 相对【yolov5 仓库根目录】解析，本文件一般放在 yolov5/data/ 下
+
+path: ../label_dataset/dataset_2
+
+test: test/images
+train: train/images
+val: val/images
+
+nc: 2
+names: ['ng', 'ok']

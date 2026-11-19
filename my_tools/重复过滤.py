@@ -308,7 +308,7 @@ def find_and_move_duplicates(target_dir, mode='hash_only'):
 
 
 if __name__ == "__main__":
-    target_dir = r"F:\data_source\3d_print_guotou\dataset_2\real_train_Re_labeledjust_0"
+    target_dir = r"D:\python\gt\label_dataset\dataset_2\real_train_Re_labeledjust_0"
 
     moved_exact, moved_similar = find_and_move_duplicates(target_dir, mode='both')
 

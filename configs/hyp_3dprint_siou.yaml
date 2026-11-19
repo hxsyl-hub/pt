@@ -1,0 +1,36 @@
+# 实验 siou：CIoU 换成 SIoU，其余与 hyp_3dprint_v3.yaml 一致
+# 依据：mAP50 0.992、mAP50-95 仅 0.758，目标能检出但高 IoU 下框不够准，
+# SIoU 在角度/距离/形状三方面约束回归，针对该症状（需求文档第 28 页）
+# 用法：HYP=configs/hyp_3dprint_siou.yaml，以 v11bb_stage2/weights/best.pt 接力
+
+s_iou: true
+
+lr0: 0.001
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 0.0
+warmup_momentum: 0.0
+warmup_bias_lr: 0.0
+
+box: 0.05
+cls: 0.5
+cls_pw: 1.0
+obj: 1.0
+obj_pw: 1.0
+iou_t: 0.20
+anchor_t: 4.0
+fl_gamma: 0.0
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 5
+translate: 0.1
+scale: 0.5
+shear: 0.2
+perspective: 0.0
+flipud: 0.5
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.1
+copy_paste: 0.0

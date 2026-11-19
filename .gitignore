@@ -9,6 +9,11 @@ __pycache__/
 # 忽略自己的运行结果（填自己的）
 /runs/
 
+# 流程产物：筛选备份、上传压缩包
+/artifacts/
+
+# 分析工具输出
+/analysis_tool/output/
 
 /.idea/
 

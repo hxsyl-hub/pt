@@ -1,0 +1,11 @@
+# 单类基线配置（仅保留裹头缺陷 ng）
+# yolov5 仓库放在项目内（gt/yolov5-7.0）时，path 相对 yolov5 仓库根解析
+
+path: ../label_dataset/dataset_2
+
+train: train/images
+val: val/images
+# test:  # 可选
+
+nc: 1
+names: ['ng']
